@@ -980,6 +980,8 @@ export default defineComponent({
       return this.layersLoaded && this.positionSet;
     },
     smallSize(): boolean {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       return this.$vuetify.display.smAndDown;
     },
     mobile(): boolean {
