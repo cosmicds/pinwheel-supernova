@@ -888,10 +888,12 @@ export default defineComponent({
       } as LocationRad,
       locationErrorMessage: "",
 
+      uuidKey,
       uuid,
       ratingOptOutKey,
       ratingOptedOut,
       showRating: false,
+      ratingSetup: false,
       storyRatingUrl: `${API_BASE_URL}/pinwheel-supernova/user-experience`,
       currentRating: null as UserExperienceRating | null,
       currentComments: null as string | null,
@@ -902,6 +904,8 @@ export default defineComponent({
   },
 
   mounted() {
+
+    window.localStorage.setItem(this.uuidKey, this.uuid);
 
     this.$nextTick(() => {
       window.addEventListener('resize', this.onResize);
@@ -999,7 +1003,9 @@ export default defineComponent({
 
       this.updateWWTLocation();
 
-      this.ratingDisplaySetup();
+      if (!this.showSplashScreen) {
+        this.ratingDisplaySetup();
+      }
 
       // wwtZoomDeg is still 0 if we run this here
       // and it was the same in nextTick
@@ -2213,7 +2219,7 @@ export default defineComponent({
     },
 
     async ratingDisplaySetup() {
-      if (this.ratingOptedOut) {
+      if (this.ratingOptedOut || this.ratingSetup) {
         return;
       }
       const existsResponse = await fetch(`${this.storyRatingUrl}/${this.uuid}`, {
@@ -2224,6 +2230,7 @@ export default defineComponent({
       // NB: If we want to ask multiple questions, this logic can be adjusted
       const existsContent = await existsResponse.json();
       const exists = existsResponse.status === 200 && existsContent.ratings?.length > 0;
+      this.ratingSetup = true;
       if (exists) {
         return;
       }
@@ -2405,6 +2412,12 @@ export default defineComponent({
         return;
       }
     },
+
+    showSplashScreen(show: boolean) {
+      if (!show) {
+        this.ratingDisplaySetup();
+      }
+    }
   }
 
   
