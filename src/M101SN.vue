@@ -3340,7 +3340,7 @@ div.credits {
   border-radius: 10px !important;
   background-color: #222222 !important;
   opacity: 0.95 !important;
-  z-index: 20000;
+  z-index: 20000 !important;
   .rating-title {
     color: #EFEFEF;
     font-size: var(--default-font-size);
