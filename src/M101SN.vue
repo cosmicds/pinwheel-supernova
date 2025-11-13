@@ -39,17 +39,19 @@
           </div>
         </div>
         
-        <div id="splash-screen-guide">
-          <font-awesome-icon
-            id="text-icon"
-            icon="book-open"
-          /> Read the guide 
-          <br>
-          <font-awesome-icon
-            id="video-icon"
-            icon="video"
-          /> Watch the demo 
+        <div>
+          <v-btn
+            class="splash-get-started"
+            @click="closeSplashScreen"
+            @keyup.enter="closeSplashScreen"
+            :color="cssVars['--accent-color']"
+            variant="elevated"
+            rounded="lg"
+          >
+            Get Started
+          </v-btn>
         </div>
+
         
         <div id="splash-screen-acknowledgements">
           Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a> and <a href="https://www.worldwidetelescope.org/home/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a>.
@@ -570,6 +572,53 @@
       </v-card>
     </v-dialog>
 
+    <v-container>
+      <v-expand-transition>
+        <user-experience
+          v-if="showRating"
+          :question="question"
+          icon-size="3x"
+          @dismiss="(_rating: UserExperienceRating | null, _comments: string | null) => {
+            showRating = false;
+          }"
+          @rating="(rating: UserExperienceRating | null) => {
+            currentRating = rating;
+            updateUserExperienceInfo(currentRating, currentComments);
+          }"
+          @finish="(rating: UserExperienceRating | null, comments: string | null) => {
+            currentRating = rating;
+            currentComments = comments;
+            updateUserExperienceInfo(currentRating, currentComments);
+            showRating = false;
+          }"
+        >
+          <template #footer>
+            <div id="user-experience-footer" class="mt-4">
+              <v-btn
+                  class="rating-opt-put"
+                  color="#BDBDBD"
+                  size="small"
+                  variant="text"
+                  @click="onOptOutClicked"
+                >
+                Don't show again
+                </v-btn>
+              <v-btn
+                class="privacy-button"
+                color="#BDBDBD"
+                href="https://www.cfa.harvard.edu/privacy-statement"
+                size="small"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+              Privacy Policy
+              </v-btn>
+            </div>
+          </template>
+        </user-experience>
+      </v-expand-transition>
+    </v-container>
+
     <notifications group="startup-location" position="top right" />
 
   </div>
@@ -579,6 +628,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { csvParse } from "d3-dsv";
+import { v4 } from "uuid";
 
 import { distance } from "@wwtelescope/astro";
 import { Constellations, Folder, Grids, ImageSetLayer, Layer, LayerManager, Place, Poly, RenderContext, Settings, SpreadSheetLayer, WWTControl } from "@wwtelescope/engine";
@@ -587,7 +637,7 @@ import { Thumbnail } from "@wwtelescope/engine-types";
 import L, { LeafletMouseEvent, Map } from "leaflet";
 import { getTimezoneOffset } from "date-fns-tz";
 import tzlookup from "tz-lookup";
-import { MiniDSBase, BackgroundImageset, skyBackgroundImagesets } from "@cosmicds/vue-toolkit";
+import { API_BASE_URL, MiniDSBase, BackgroundImageset, skyBackgroundImagesets, type UserExperienceRating } from "@cosmicds/vue-toolkit";
 
 import { applyImageSetLayerSetting } from "@wwtelescope/engine-helpers";
 
@@ -735,6 +785,11 @@ export default defineComponent({
   },
   data() {
     const now = new Date();
+    const uuidKey = "cds-pinwheel-supernova-uuid";
+    const maybeUUID = window.localStorage.getItem(uuidKey);
+    const uuid = maybeUUID ?? v4();
+    const ratingOptOutKey = "cds-pinwheel-supernova-rating-optout";
+    const ratingOptedOut = window.localStorage.getItem(ratingOptOutKey)?.toLowerCase() === "true";
     return {
       showSplashScreen: true, // ACTION NEEDED - reset to true
       imagesetLayers: {} as Record<string, ImageSetLayer>,
@@ -833,11 +888,26 @@ export default defineComponent({
         latitudeRad: D2R * 42.3814,
         longitudeRad: D2R * -71.1281
       } as LocationRad,
-      locationErrorMessage: ""
+      locationErrorMessage: "",
+
+      uuidKey,
+      uuid,
+      ratingOptOutKey,
+      ratingOptedOut,
+      showRating: false,
+      ratingSetup: false,
+      storyRatingUrl: `${API_BASE_URL}/pinwheel-supernova/user-experience`,
+      currentRating: null as UserExperienceRating | null,
+      currentComments: null as string | null,
+      question: Math.random() > 0.5 ?
+        "Does this spark your curiosity?" :
+        "Are you learning something new?",
     };
   },
 
   mounted() {
+
+    window.localStorage.setItem(this.uuidKey, this.uuid);
 
     this.$nextTick(() => {
       window.addEventListener('resize', this.onResize);
@@ -934,6 +1004,10 @@ export default defineComponent({
       LayerManager._draw = layerManagerDraw;
 
       this.updateWWTLocation();
+
+      if (!this.showSplashScreen) {
+        this.ratingDisplaySetup();
+      }
 
       // wwtZoomDeg is still 0 if we run this here
       // and it was the same in nextTick
@@ -2144,7 +2218,58 @@ export default defineComponent({
         console.log('optionalZoom: zoom in');
       }
       return this.needToZoomIn(place, factor) ? place.get_zoomLevel() : this.wwtZoomDeg;
-    }
+    },
+
+    async ratingDisplaySetup() {
+      if (this.ratingOptedOut || this.ratingSetup) {
+        return;
+      }
+      const existsResponse = await fetch(`${this.storyRatingUrl}/${this.uuid}`, {
+        method: "GET",
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        headers: { "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "" }
+      });
+      // NB: If we want to ask multiple questions, this logic can be adjusted
+      const existsContent = await existsResponse.json();
+      const exists = existsResponse.status === 200 && existsContent.ratings?.length > 0;
+      this.ratingSetup = true;
+      if (exists) {
+        return;
+      }
+      setTimeout(() => {
+        this.showRating = true;
+      }, 30_000);
+    },
+
+    updateUserExperienceInfo(rating: UserExperienceRating | null, comments: string | null) {
+      const body: Record<string, unknown> = {
+        uuid: this.uuid,
+        question: this.question,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        story_name: "pinwheel-supernova",
+      };
+      if (rating) {
+        body.rating = rating;
+      }
+      if (comments) {
+        body.comments = comments;
+      }
+      fetch(this.storyRatingUrl, {
+        method: "PUT",
+        headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          "Authorization": process.env.VUE_APP_CDS_API_KEY ?? "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+    },
+
+    onOptOutClicked() {
+      this.showRating = false;
+      this.ratingOptedOut = true;
+      window.localStorage.setItem(this.ratingOptOutKey, "true");
+    },
   },
 
   watch: {
@@ -2289,6 +2414,12 @@ export default defineComponent({
         return;
       }
     },
+
+    showSplashScreen(show: boolean) {
+      if (!show) {
+        this.ratingDisplaySetup();
+      }
+    }
   }
 
   
@@ -3061,7 +3192,7 @@ video, #info-video {
   align-content: center;
   justify-content: space-around;
   
-  border-radius: 10%;
+  border-radius: 30px;
   border: min(1.2vw,0.9vh) solid var(--accent-color);
   overflow: auto;
   font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
@@ -3126,6 +3257,16 @@ video, #info-video {
     }
   }
 
+  .splash-get-started {
+    border: 2px solid white;
+    color: black !important;
+    font-size: 2rem;
+    font-weight: bold !important;
+    padding-block: 0.5rem;
+    height: auto !important;
+    min-height: auto !important;
+  }  
+
   #splash-screen-acknowledgements {
     font-size: .5em;
     width: 70%; 
@@ -3186,4 +3327,53 @@ div.credits {
   color: var(--accent-color-2) !important;
 }
 
+.rating-root {
+  position: absolute !important;
+  right: 5px;
+  bottom: 0;
+  padding: 5px;
+  width: fit-content !important;
+  // left: 50%;
+  // transform: translateX(-50%);
+  gap: 0 !important;
+  border: solid 1px #EFEFEF !important;
+  border-radius: 10px !important;
+  background-color: #222222 !important;
+  opacity: 0.95 !important;
+  z-index: 20000;
+  .rating-title {
+    color: #EFEFEF;
+    font-size: var(--default-font-size);
+  }
+  .rating-icon-row {
+    
+    padding: 0px;
+    .svg-inline--fa {
+      height: 30px;
+    }
+  }
+  .comments-box {
+    width: 100%;
+    margin-top: 20px;
+  }
+  .v-card-text {
+    padding-bottom: 0;
+  }
+  .v-card-actions {
+    padding: 0;
+  }
+   #user-experience-footer {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+  }
+  .close-button {
+    position: absolute !important;
+    color: white !important;
+  }
+  .v-field--variant-filled .v-field__outline:before, .v-field--variant-underlined .v-field__outline:before, 
+  .v-field--variant-filled .v-field__outline:after, .v-field--variant-underlined .v-field__outline:after {
+    border-style: none !important;
+  }
+}
 </style>
