@@ -39,17 +39,19 @@
           </div>
         </div>
         
-        <div id="splash-screen-guide">
-          <font-awesome-icon
-            id="text-icon"
-            icon="book-open"
-          /> Read the guide 
-          <br>
-          <font-awesome-icon
-            id="video-icon"
-            icon="video"
-          /> Watch the demo 
+        <div>
+          <v-btn
+            class="splash-get-started"
+            @click="closeSplashScreen"
+            @keyup.enter="closeSplashScreen"
+            :color="cssVars['--accent-color']"
+            variant="elevated"
+            rounded="lg"
+          >
+            Get Started
+          </v-btn>
         </div>
+
         
         <div id="splash-screen-acknowledgements">
           Brought to you by <a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">Cosmic Data Stories</a> and <a href="https://www.worldwidetelescope.org/home/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a>.
@@ -3190,7 +3192,7 @@ video, #info-video {
   align-content: center;
   justify-content: space-around;
   
-  border-radius: 10%;
+  border-radius: 30px;
   border: min(1.2vw,0.9vh) solid var(--accent-color);
   overflow: auto;
   font-family: 'Highway Gothic Narrow', 'Roboto', sans-serif;
@@ -3254,6 +3256,16 @@ video, #info-video {
       margin: 0 10px;
     }
   }
+
+  .splash-get-started {
+    border: 2px solid white;
+    color: black !important;
+    font-size: 2rem;
+    font-weight: bold !important;
+    padding-block: 0.5rem;
+    height: auto !important;
+    min-height: auto !important;
+  }  
 
   #splash-screen-acknowledgements {
     font-size: .5em;
