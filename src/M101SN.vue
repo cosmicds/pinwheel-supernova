@@ -2241,7 +2241,7 @@ export default defineComponent({
       }
       setTimeout(() => {
         this.showRating = true;
-      }, 3000);
+      }, 30_000);
     },
 
     updateUserExperienceInfo(rating: UserExperienceRating | null, comments: string | null) {
