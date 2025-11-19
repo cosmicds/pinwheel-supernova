@@ -606,17 +606,19 @@
               <v-btn
                 class="privacy-button"
                 color="#BDBDBD"
-                href="https://www.cfa.harvard.edu/privacy-statement"
+                @click="showPrivacyPolicy = true"
+                @keyup.enter="showPrivacyPolicy = true"
                 size="small"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-              Privacy Policy
+              What is this?
               </v-btn>
             </div>
           </template>
         </user-experience>
       </v-expand-transition>
+      <cds-privacy-policy v-model="showPrivacyPolicy" />
     </v-container>
 
     <notifications group="startup-location" position="top right" />
@@ -817,6 +819,7 @@ export default defineComponent({
       arrowCreated: false,
 
       showSpeadSheetLater: false,
+      showPrivacyPolicy: false,
 
       currentCometImageLayer: null as SpreadSheetLayer | null,
       currentAllLayer: null as SpreadSheetLayer | null,
@@ -2238,7 +2241,7 @@ export default defineComponent({
       }
       setTimeout(() => {
         this.showRating = true;
-      }, 30_000);
+      }, 3000);
     },
 
     updateUserExperienceInfo(rating: UserExperienceRating | null, comments: string | null) {

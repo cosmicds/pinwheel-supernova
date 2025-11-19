@@ -9,6 +9,7 @@ import chartjsScatter from "./chartjs-scatter.vue";
 import d3Scatter from "./d3-scatter.vue";
 // import PlotDataPlotly from "./PlotDataPlotly.vue";
 import ConstellationIcon from "./ConstellationIcon.vue";
+import CDSPrivacyPolicy from "./CDSPrivacyPolicy.vue";
 import { FundingAcknowledgment, Gallery, IconButton, UserExperience } from "@cosmicds/vue-toolkit";
 
 import "./polyfills";
@@ -130,6 +131,7 @@ createApp(M101SN, {
   .component('icon-button', IconButton)
   .component('funding-acknowledgment', FundingAcknowledgment)
   .component('user-experience', UserExperience)
+  .component('cds-privacy-policy', CDSPrivacyPolicy)
 
   // Mount
   .mount("#app");
