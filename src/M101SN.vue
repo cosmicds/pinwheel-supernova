@@ -1008,9 +1008,9 @@ export default defineComponent({
 
       this.updateWWTLocation();
 
-      if (!this.showSplashScreen) {
-        this.ratingDisplaySetup();
-      }
+      // if (!this.showSplashScreen) {
+      //   this.ratingDisplaySetup();
+      // }
 
       // wwtZoomDeg is still 0 if we run this here
       // and it was the same in nextTick
@@ -2418,11 +2418,11 @@ export default defineComponent({
       }
     },
 
-    showSplashScreen(show: boolean) {
-      if (!show) {
-        this.ratingDisplaySetup();
-      }
-    }
+    // showSplashScreen(show: boolean) {
+    //   if (!show) {
+    //     this.ratingDisplaySetup();
+    //   }
+    // }
   }
 
   
